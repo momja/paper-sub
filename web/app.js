@@ -694,29 +694,55 @@ function toast(html) {
 
 // ---------------------------------------------------------------- export --
 
-document.getElementById('btn-download').onclick = () => {
-  location.href = '/api/export?download=1'; // served as an attachment, so the page stays put
+/** Fetch the export, turning a missing route into advice instead of a bare 404. */
+async function fetchExport() {
+  const res = await fetch('/api/export?download=1');
+  if (res.status === 404) throw new Error('This <b>paper serve</b> predates export. Restart it.');
+  if (!res.ok) throw new Error(`Export failed (${res.status})`);
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const filename = /filename="([^"]+)"/.exec(disposition)?.[1] || 'canvas.html';
+  return { html: await res.text(), filename };
+}
+
+const kb = (html) => `${(html.length / 1024).toFixed(0)} kb`;
+
+document.getElementById('btn-download').onclick = async () => {
+  try {
+    const { html, filename } = await fetchExport();
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast(`Downloaded <b>${filename}</b> · ${kb(html)}`);
+  } catch (err) {
+    toast(err.message);
+  }
 };
 
 document.getElementById('btn-copy-html').onclick = async () => {
-  const html = fetch('/api/export').then((r) => {
-    if (!r.ok) throw new Error(r.statusText);
-    return r.text();
-  });
+  const pending = fetchExport();
+  pending.catch(() => {}); // awaited below; keeps the console free of a duplicate report
   try {
     // A promised ClipboardItem keeps Safari's user-gesture check happy across the fetch.
     await navigator.clipboard.write([
-      new ClipboardItem({ 'text/plain': html.then((t) => new Blob([t], { type: 'text/plain' })) }),
+      new ClipboardItem({ 'text/plain': pending.then(({ html }) => new Blob([html], { type: 'text/plain' })) }),
     ]);
-    toast(`Copied view-only HTML <b>${((await html).length / 1024).toFixed(0)} kb</b>`);
   } catch {
+    let html;
     try {
-      await navigator.clipboard.writeText(await html);
-      toast(`Copied view-only HTML <b>${((await html).length / 1024).toFixed(0)} kb</b>`);
+      ({ html } = await pending);
+    } catch (err) {
+      return toast(err.message);
+    }
+    try {
+      await navigator.clipboard.writeText(html);
     } catch {
-      toast('Could not copy. Try <b>Download</b> instead');
+      return toast('Clipboard blocked. Use <b>Download</b> instead');
     }
   }
+  toast(`Copied view-only HTML · ${kb((await pending).html)}`);
 };
 
 applyTransform();
