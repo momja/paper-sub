@@ -221,6 +221,18 @@ ${content}
 `;
 }
 
+/** What an empty frame shows. The CLI hint only makes sense on a live canvas. */
+export function emptyFramePlaceholder(name, { hint = true } = {}) {
+  const cmd = hint
+    ? `\n    <code style="font:12px ui-monospace,SFMono-Regular,monospace;color:#c0c4c9">paper set ${escapeHtml(name)} --file design.html</code>`
+    : '';
+  return `<div style="display:grid;place-items:center;height:100vh;font:500 14px ui-sans-serif,system-ui;color:#9aa0a6;letter-spacing:.02em">
+  <div style="text-align:center">
+    <div style="font-size:13px;text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px">Empty frame</div>${cmd}
+  </div>
+</div>`;
+}
+
 export function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',

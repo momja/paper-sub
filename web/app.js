@@ -14,6 +14,11 @@ const zoomLevelEl = document.getElementById('zoomlevel');
 const toastEl = document.getElementById('toast');
 const helpEl = document.getElementById('help');
 
+// A view-only export (src/export.js) carries its frames inline and has no
+// server behind it: frames can be looked at and stepped into, never changed.
+const READONLY = document.body.classList.contains('readonly');
+const EXPORTED = READONLY ? JSON.parse(document.getElementById('paper-data').textContent) : null;
+
 const MIN_SCALE = 0.02;
 const MAX_SCALE = 4;
 
@@ -164,10 +169,15 @@ function paintFrame(entry, frame) {
   if (frame.contentRev !== undefined && frame.contentRev !== entry.contentRev) {
     const first = entry.contentRev === -1;
     entry.contentRev = frame.contentRev;
-    refs.iframe.src = `/api/preview/${encodeURIComponent(frame.id)}?r=${frame.contentRev}`;
+    loadFrame(entry, frame.contentRev);
     if (!first) flash(entry);
   }
   if (selectedId === frame.id) updateInspector(frame);
+}
+
+function loadFrame(entry, rev) {
+  if (EXPORTED) entry.refs.iframe.srcdoc = entry.frame.html;
+  else entry.refs.iframe.src = `/api/preview/${encodeURIComponent(entry.frame.id)}?r=${rev}`;
 }
 
 function flash(entry) {
@@ -208,7 +218,7 @@ function reconcile(frames) {
       entry.frame = { ...frame, x: entry.frame.x, y: entry.frame.y, w: entry.frame.w, h: entry.frame.h };
       if (frame.contentRev !== entry.contentRev) {
         entry.contentRev = frame.contentRev;
-        entry.refs.iframe.src = `/api/preview/${encodeURIComponent(frame.id)}?r=${frame.contentRev}`;
+        loadFrame(entry, frame.contentRev);
       }
     }
   }
@@ -237,7 +247,7 @@ function select(id) {
     next.el.style.zIndex = String(++zTop);
     updateInspector(next.frame);
   }
-  document.getElementById('inspector').classList.toggle('show', Boolean(next));
+  document.getElementById('inspector').classList.toggle('show', Boolean(next) && !READONLY);
 }
 
 let zTop = 1;
@@ -346,6 +356,12 @@ const release = (el, id) => {
 function bindFrame(entry) {
   const { el, refs } = entry;
 
+  refs.body.addEventListener('dblclick', (ev) => {
+    ev.preventDefault();
+    enterFrame(entry);
+  });
+  if (READONLY) return; // no moving or resizing; a drag pans the canvas instead
+
   const startMove = (ev) => {
     if (ev.button !== 0 || spaceHeld) return;
     ev.preventDefault();
@@ -391,13 +407,6 @@ function bindFrame(entry) {
     startMove(ev);
   });
   el.querySelector('.frame-label').addEventListener('pointerdown', startMove);
-
-  refs.body.addEventListener('dblclick', (ev) => {
-    if (entry.el.classList.contains('live')) return;
-    ev.preventDefault();
-    select(entry.frame.id);
-    setLive(entry.frame.id);
-  });
 
   for (const grip of el.querySelectorAll('.handle, .edge')) {
     grip.addEventListener('pointerdown', (ev) => {
@@ -466,6 +475,12 @@ function bindFrame(entry) {
   }
 }
 
+function enterFrame(entry) {
+  if (entry.el.classList.contains('live')) return;
+  select(entry.frame.id);
+  setLive(entry.frame.id);
+}
+
 async function commit(id, patch) {
   try {
     await fetch(`/api/frames/${encodeURIComponent(id)}`, {
@@ -484,11 +499,12 @@ let spaceHeld = false;
 
 viewport.addEventListener('pointerdown', (ev) => {
   const onFrame = ev.target.closest('.frame');
-  if (onFrame && !spaceHeld && ev.button === 0) return;
+  if (onFrame && !spaceHeld && ev.button === 0 && !READONLY) return;
   if (ev.button === 0 && !spaceHeld && !onFrame) {
     select(null);
     setLive(null);
   }
+  if (READONLY && liveId && onFrame !== views.get(liveId)?.el) setLive(null);
   if (ev.button !== 0 && ev.button !== 1 && !spaceHeld) return;
 
   ev.preventDefault();
@@ -509,6 +525,15 @@ viewport.addEventListener('pointerdown', (ev) => {
   };
   viewport.addEventListener('pointermove', onMove);
   viewport.addEventListener('pointerup', onUp);
+});
+
+// In view-only mode a press on a frame starts a pan, and the pan's pointer
+// capture retargets the double-click to the viewport. Find the frame by position.
+viewport.addEventListener('dblclick', (ev) => {
+  if (!READONLY) return;
+  const el = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.frame');
+  const entry = el && [...views.values()].find((v) => v.el === el);
+  if (entry) enterFrame(entry);
 });
 
 viewport.addEventListener(
@@ -562,7 +587,7 @@ window.addEventListener('keydown', (ev) => {
     case 'R': {
       const entry = views.get(selectedId);
       if (entry) {
-        entry.refs.iframe.src = `/api/preview/${encodeURIComponent(entry.frame.id)}?r=${Date.now()}`;
+        loadFrame(entry, Date.now());
         flash(entry);
       }
       break;
@@ -577,7 +602,7 @@ window.addEventListener('keydown', (ev) => {
       break;
     case 'Backspace':
     case 'Delete': {
-      if (!selectedId || liveId) break;
+      if (!selectedId || liveId || READONLY) break;
       ev.preventDefault();
       const entry = views.get(selectedId);
       const name = entry?.frame.name;
@@ -648,6 +673,7 @@ function connect() {
 
 let saveTimer = null;
 function saveViewport() {
+  if (READONLY) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     fetch('/api/viewport', {
@@ -666,5 +692,33 @@ function toast(html) {
   toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2400);
 }
 
+// ---------------------------------------------------------------- export --
+
+document.getElementById('btn-download').onclick = () => {
+  location.href = '/api/export?download=1'; // served as an attachment, so the page stays put
+};
+
+document.getElementById('btn-copy-html').onclick = async () => {
+  const html = fetch('/api/export').then((r) => {
+    if (!r.ok) throw new Error(r.statusText);
+    return r.text();
+  });
+  try {
+    // A promised ClipboardItem keeps Safari's user-gesture check happy across the fetch.
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'text/plain': html.then((t) => new Blob([t], { type: 'text/plain' })) }),
+    ]);
+    toast(`Copied view-only HTML <b>${((await html).length / 1024).toFixed(0)} kb</b>`);
+  } catch {
+    try {
+      await navigator.clipboard.writeText(await html);
+      toast(`Copied view-only HTML <b>${((await html).length / 1024).toFixed(0)} kb</b>`);
+    } catch {
+      toast('Could not copy. Try <b>Download</b> instead');
+    }
+  }
+};
+
 applyTransform();
-connect();
+if (EXPORTED) reconcile(EXPORTED.frames);
+else connect();

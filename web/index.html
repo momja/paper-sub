@@ -25,11 +25,16 @@
 </div>
 
 <div id="topbar" class="chrome">
-  <span class="dot" id="conn" title="Connected"></span>
+  <span class="dot edit-only" id="conn" title="Connected"></span>
   <span class="brand">paper</span>
   <span class="sep"></span>
   <span class="stat" id="count">0 frames</span>
   <span class="sep"></span>
+  <span class="stat view-only">view only</span>
+  <span class="sep view-only"></span>
+  <button class="tool edit-only" id="btn-copy-html" title="Copy the canvas as one view-only HTML file">Copy HTML</button>
+  <button class="tool edit-only" id="btn-download" title="Download the canvas as one view-only HTML file">Download</button>
+  <span class="sep edit-only"></span>
   <button class="tool" id="btn-help" title="Keyboard shortcuts (?)">?</button>
 </div>
 
@@ -69,15 +74,16 @@
       <dt>scroll</dt><dd>Pan around the canvas</dd>
       <dt>⌘ scroll</dt><dd>Zoom in and out</dd>
       <dt>space + drag</dt><dd>Pan from anywhere</dd>
-      <dt>drag</dt><dd>Move the frame under the cursor</dd>
-      <dt>drag edge</dt><dd>Resize a selected frame</dd>
+      <dt class="edit-only">drag</dt><dd class="edit-only">Move the frame under the cursor</dd>
+      <dt class="edit-only">drag edge</dt><dd class="edit-only">Resize a selected frame</dd>
+      <dt class="view-only">drag</dt><dd class="view-only">Pan the canvas</dd>
       <dt>double-click</dt><dd>Interact with the design inside</dd>
       <dt>esc</dt><dd>Stop interacting / deselect</dd>
       <dt>F</dt><dd>Zoom to fit every frame</dd>
       <dt>0</dt><dd>Reset zoom to 100%</dd>
       <dt>1</dt><dd>Zoom to the selected frame</dd>
       <dt>R</dt><dd>Reload the selected frame</dd>
-      <dt>⌫</dt><dd>Delete the selected frame</dd>
+      <dt class="edit-only">⌫</dt><dd class="edit-only">Delete the selected frame</dd>
     </dl>
   </div>
 </div>

@@ -15,6 +15,7 @@ export const HELP = `
     init                     Create a canvas in the current directory
     status                   Show canvas location, frame count, server URL
     open [frame]             Open the viewer, optionally focused on a frame
+    export                   Save the canvas as one view-only HTML file  ${dim('(--out)')}
 
   ${dim('FRAMES')}
     add <name>               Add a frame  ${dim('(--file | --html | stdin)')}
@@ -126,6 +127,26 @@ export const COMMAND_HELP = {
   ${dim('EXAMPLES')}
     ${cyan('paper arrange --cols 4')}
     ${cyan('paper arrange --cols 2 --gap 200')}
+`,
+  export: `
+  ${bold('paper export')} [--out <file>] [--title <text>]
+
+  Writes the whole canvas to a single self-contained HTML file. The copy is
+  view-only: pan, zoom, and double-click into a design work, but nothing can
+  be moved or changed. It needs no server, so open it from disk or upload it
+  to any static host (GitHub Pages, S3, a gist preview).
+
+  Frame designs keep running in sandboxed iframes, exactly as on the canvas.
+  The viewer's ${dim('Copy HTML')} and ${dim('Download')} buttons produce the same file.
+
+  ${dim('OPTIONS')}
+    --out, -o <file>    Output path  ${dim('(default <project>.html; - for stdout)')}
+    --title <text>      Page title  ${dim('(default: the project folder name)')}
+
+  ${dim('EXAMPLES')}
+    ${cyan('paper export')}
+    ${cyan('paper export --out public/board.html --title "Q3 explorations"')}
+    ${cyan('paper export --out - | pbcopy')}
 `,
   serve: `
   ${bold('paper serve')} [--port <n>] [--no-open]

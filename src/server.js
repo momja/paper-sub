@@ -8,7 +8,8 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Store, wrapHtml } from './store.js';
+import { Store, wrapHtml, emptyFramePlaceholder } from './store.js';
+import { buildExport, exportFilename } from './export.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WEB_DIR = path.join(__dirname, '..', 'web');
@@ -153,6 +154,17 @@ export function createServer({ root } = {}) {
         return send(res, 200, store.readContent(id), { 'Content-Type': 'text/plain; charset=utf-8' });
       }
 
+      // --- view-only export ------------------------------------------------
+      if (pathname === '/api/export' && req.method === 'GET') {
+        const html = buildExport(store);
+        const headers = { 'Content-Type': 'text/html; charset=utf-8' };
+        if (url.searchParams.has('download')) {
+          const title = html.match(/<title>([^<]*)<\/title>/)[1];
+          headers['Content-Disposition'] = `attachment; filename="${exportFilename(title)}"`;
+        }
+        return send(res, 200, html, headers);
+      }
+
       // --- mutate frame geometry -------------------------------------------
       const frameMatch = pathname.match(/^\/api\/frames\/([^/]+)$/);
       if (frameMatch && (req.method === 'PATCH' || req.method === 'POST')) {
@@ -250,15 +262,6 @@ function withContentRevs(store, state) {
       return { ...f, contentRev };
     }),
   };
-}
-
-function emptyFramePlaceholder(name) {
-  return `<div style="display:grid;place-items:center;height:100vh;font:500 14px ui-sans-serif,system-ui;color:#9aa0a6;letter-spacing:.02em">
-  <div style="text-align:center">
-    <div style="font-size:13px;text-transform:uppercase;letter-spacing:.14em;margin-bottom:8px">Empty frame</div>
-    <code style="font:12px ui-monospace,SFMono-Regular,monospace;color:#c0c4c9">paper set ${name} --file design.html</code>
-  </div>
-</div>`;
 }
 
 export async function listen({ root, port = 4321, host = '127.0.0.1' } = {}) {

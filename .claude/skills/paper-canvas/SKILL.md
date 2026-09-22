@@ -104,6 +104,10 @@ Drag a frame to move it, drag its edge to resize, **double-click to interact** w
 (frames are inert by default so clicks drag rather than trigger links). `F` fits everything, `?` lists
 shortcuts.
 
+To share the board with someone who can't run the viewer, `paper export` writes one self-contained,
+view-only HTML file (`--out <file>`, or `--out -` for stdout). The viewer's Copy HTML and Download
+buttons do the same.
+
 ## Full command and flag reference
 
 See [reference.md](reference.md) for every command, all flags, the size presets, the on-disk layout,

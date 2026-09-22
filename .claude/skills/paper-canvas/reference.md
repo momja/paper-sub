@@ -17,6 +17,7 @@ stderr.
 | `paper init` | Creates `.paper-canvas/` in the cwd. Rarely needed — any command bootstraps it. |
 | `paper status` | Canvas path, frame count, server URL or `not running`. |
 | `paper open [frame]` | Opens the viewer, optionally focused on a frame. `--print` emits the URL instead of launching. |
+| `paper export` | Writes the canvas to one self-contained, view-only HTML file that needs no server. `--out <file>` (default `<project>.html`; `-` for stdout), `--title <text>`. Works whether or not the viewer is running. |
 
 ## Frames
 
@@ -115,6 +116,9 @@ writes.
 
 Frames are inert by default — a click drags rather than hitting links inside — so a board of live
 pages can be rearranged without triggering them.
+
+In an exported file the board is view-only: dragging anywhere pans, and move, resize, and delete are
+gone. Double-click still steps into a design.
 
 ## Troubleshooting
 

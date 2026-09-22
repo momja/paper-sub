@@ -14,6 +14,7 @@ import {
   DEFAULT_FRAME_SIZE,
 } from './store.js';
 import { listen } from './server.js';
+import { buildExport, defaultTitle, exportFilename } from './export.js';
 import { HELP, COMMAND_HELP } from './help.js';
 
 const PRESETS = {
@@ -352,6 +353,27 @@ const COMMANDS = {
     return 0;
   },
 
+  // -------------------------------------------------------------- export ---
+  async export({ store, flags }) {
+    const title = typeof flags.title === 'string' ? flags.title : defaultTitle(store);
+    const html = buildExport(store, { title });
+    const target = flags.out ?? flags.o;
+    if (target === '-') {
+      process.stdout.write(html);
+      return 0;
+    }
+
+    const file = path.resolve(typeof target === 'string' ? target : exportFilename(title));
+    fs.writeFileSync(file, html, 'utf8');
+    const frames = store.read().frames.length;
+    if (truthy(flags.json)) return json({ file, frames, bytes: Buffer.byteLength(html) });
+    ok(
+      `Exported ${frames} frame${frames === 1 ? '' : 's'} to ${bold(homeShorten(file))} ` +
+        dim(`(${(Buffer.byteLength(html) / 1024).toFixed(1)}kb, view-only)`)
+    );
+    return 0;
+  },
+
   // ---------------------------------------------------------------- open ---
   async open({ store, args, flags }) {
     const lock = store.readLock();
@@ -443,7 +465,7 @@ export function parseArgs(argv) {
     } else if (token.startsWith('-') && token.length > 1) {
       const body = token.slice(1);
       const next = rest[i + 1];
-      if (next !== undefined && !next.startsWith('-')) {
+      if (next !== undefined && (!next.startsWith('-') || next === '-')) {
         flags[body] = next;
         i++;
       } else {

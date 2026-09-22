@@ -599,3 +599,19 @@ button.chip.on {
   font-size: 12px;
   color: var(--muted);
 }
+
+/* ------------------------------------------------------------ view-only -- */
+/* A `paper export` file sets body.readonly: no editing chrome, drags pan. */
+
+body:not(.readonly) .view-only,
+.readonly .edit-only,
+.readonly #inspector,
+.readonly #empty pre,
+.readonly .handle,
+.readonly .edge {
+  display: none;
+}
+.readonly .frame-shield,
+.readonly .frame-label {
+  cursor: grab;
+}

@@ -58,6 +58,7 @@ browser tabs over Server-Sent Events. That means:
 | `paper arrange` | Lay everything out on a grid (`--cols`, `--gap`) |
 | `paper status` | Canvas path, frame count, server URL |
 | `paper open [frame]` | Open the viewer, optionally focused on a frame |
+| `paper export` | Save the canvas as one view-only HTML file (`--out`, `--title`) |
 
 `<frame>` is an id (`f_9c2a1b04`), an id prefix (`f_9c2`), or a name (`hero`).
 
@@ -100,6 +101,24 @@ wrapping entirely.
 
 Frames are inert by default — a click drags rather than hitting links inside — so you can rearrange a
 board of live pages without triggering them. Double-click to step into one.
+
+## Sharing a canvas
+
+`paper export` writes the whole board to a single HTML file that needs no server:
+
+```bash
+paper export                          # → <project>.html in the current directory
+paper export --out public/board.html --title "Q3 explorations"
+paper export --out - | pbcopy         # straight to the clipboard
+```
+
+The viewer's **Copy HTML** and **Download** buttons produce the same file.
+
+The copy is view-only. People can pan, zoom, and double-click into a design to scroll or click
+around, but they can't move, resize, or delete frames. Everything is inlined: the viewer's CSS and
+JS, and every frame's markup, which loads into sandboxed `srcdoc` iframes. Open it from disk or
+upload it to any static host (GitHub Pages, S3, Netlify, a gist preview). It makes no network
+requests of its own; a design that links a web font or remote image still fetches that.
 
 ## For agents
 
