@@ -6,6 +6,8 @@ Agents write markup and push it onto a canvas with `paper add` / `paper set`. Yo
 rearrange the result in the browser. There is no in-app editing: the CLI is the only way content
 changes, so an agent and a human can work on the same canvas without stepping on each other.
 
+![paper demo: CLI commands add frames to the canvas live, a frame is dragged into place, and `paper set` updates the hero in place](docs/demo.gif)
+
 ```
 paper serve                                    # open the canvas
 paper add hero --file hero.html --preset desktop
