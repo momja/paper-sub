@@ -1,0 +1,49 @@
+<style>
+  body { background: #f7f7f8; font-family: ui-sans-serif, system-ui, sans-serif; color: #16181d; }
+  .wrap { padding: 56px 32px; }
+  h2 { font-size: 30px; letter-spacing: -0.03em; margin: 0 0 6px; text-align: center; font-weight: 640; }
+  .sub { text-align: center; color: #71757e; font-size: 15px; margin: 0 0 40px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 900px; margin: 0 auto; }
+  .card { background: #fff; border: 1px solid #e6e7ea; border-radius: 14px; padding: 26px 24px; }
+  .card.featured { border-color: #16181d; box-shadow: 0 12px 32px -12px rgba(0,0,0,.18); position: relative; }
+  .tag { position: absolute; top: -10px; left: 24px; background: #16181d; color: #fff; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; }
+  .plan { font-size: 13px; font-weight: 600; color: #71757e; letter-spacing: .04em; text-transform: uppercase; }
+  .price { font-size: 40px; letter-spacing: -0.04em; font-weight: 650; margin: 12px 0 2px; }
+  .price span { font-size: 14px; color: #71757e; font-weight: 450; letter-spacing: 0; }
+  ul { list-style: none; padding: 0; margin: 20px 0 24px; font-size: 14px; color: #40444c; }
+  li { display: flex; gap: 9px; padding: 7px 0; align-items: center; }
+  li svg { flex-shrink: 0; }
+  .buy { display: block; text-align: center; padding: 11px; border-radius: 9px; font-size: 14px; font-weight: 550; text-decoration: none; border: 1px solid #e6e7ea; color: #16181d; }
+  .card.featured .buy { background: #16181d; color: #fff; border-color: #16181d; }
+</style>
+<div class="wrap">
+  <h2>Simple, honest pricing</h2>
+  <p class="sub">Every plan includes the full canvas. Scale when you need to.</p>
+  <div class="cards">
+    <div class="card">
+      <div class="plan">Solo</div>
+      <div class="price">$0<span>/mo</span></div>
+      <ul>
+        <li>✓ 3 canvases</li><li>✓ Unlimited frames</li><li>✓ CLI access</li>
+      </ul>
+      <a class="buy" href="#">Get started</a>
+    </div>
+    <div class="card featured">
+      <span class="tag">Popular</span>
+      <div class="plan">Studio</div>
+      <div class="price">$24<span>/mo</span></div>
+      <ul>
+        <li>✓ Unlimited canvases</li><li>✓ Live agent sessions</li><li>✓ Version history</li><li>✓ Shared workspaces</li>
+      </ul>
+      <a class="buy" href="#">Start free trial</a>
+    </div>
+    <div class="card">
+      <div class="plan">Team</div>
+      <div class="price">$79<span>/mo</span></div>
+      <ul>
+        <li>✓ Everything in Studio</li><li>✓ SSO &amp; audit logs</li><li>✓ Priority support</li>
+      </ul>
+      <a class="buy" href="#">Contact sales</a>
+    </div>
+  </div>
+</div>

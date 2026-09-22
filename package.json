@@ -1,0 +1,21 @@
+{
+  "name": "paper-sub",
+  "version": "0.1.0",
+  "description": "An infinite canvas scratchpad for HTML/CSS designs, driven entirely by a CLI.",
+  "type": "module",
+  "bin": {
+    "paper": "./bin/paper.js"
+  },
+  "scripts": {
+    "serve": "node ./bin/paper.js serve"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin",
+    "src",
+    "web"
+  ],
+  "license": "MIT"
+}

@@ -1,0 +1,40 @@
+<style>
+  body { background: #fbfbfc; font-family: ui-sans-serif, system-ui, sans-serif; color: #14161a; }
+  .shell { display: grid; grid-template-columns: 208px 1fr; height: 100%; }
+  aside { border-right: 1px solid #ebecef; padding: 22px 14px; }
+  .org { display: flex; align-items: center; gap: 9px; margin-bottom: 22px; padding: 0 8px; }
+  .org i { width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(135deg,#8b7cff,#48c9d9); display: block; }
+  .org b { font-size: 13px; font-weight: 600; }
+  nav a { display: block; padding: 7px 9px; border-radius: 7px; font-size: 13px; color: #5c626c; text-decoration: none; }
+  nav a.on { background: #f0f0f3; color: #14161a; font-weight: 550; }
+  main { padding: 30px 34px; }
+  h1 { font-size: 20px; letter-spacing: -0.02em; margin: 0 0 3px; font-weight: 640; }
+  .sub { font-size: 13px; color: #767c86; margin: 0 0 26px; }
+  .empty { border: 1px dashed #dcdee3; border-radius: 12px; padding: 52px 30px; text-align: center; background: #fff; }
+  .empty .glyph { width: 42px; height: 42px; border-radius: 11px; background: #f1f1f4; margin: 0 auto 15px; display: grid; place-items: center; font-size: 19px; }
+  .empty h2 { font-size: 15px; margin: 0 0 5px; font-weight: 600; }
+  .empty p { font-size: 13px; color: #767c86; margin: 0 auto 18px; max-width: 38ch; line-height: 1.55; }
+  .empty a { display: inline-block; background: #14161a; color: #fff; text-decoration: none; font-size: 13px; font-weight: 550; padding: 9px 16px; border-radius: 8px; }
+</style>
+<div class="shell">
+  <aside>
+    <div class="org"><i></i><b>Northwind</b></div>
+    <nav>
+      <a href="#">General</a>
+      <a href="#">Members</a>
+      <a class="on" href="#">API keys</a>
+      <a href="#">Billing</a>
+      <a href="#">Audit log</a>
+    </nav>
+  </aside>
+  <main>
+    <h1>API keys</h1>
+    <p class="sub">Keys let services authenticate as your workspace.</p>
+    <div class="empty">
+      <div class="glyph">🔑</div>
+      <h2>No API keys yet</h2>
+      <p>Create a key to let an agent push designs to this workspace from the command line.</p>
+      <a href="#">Create a key</a>
+    </div>
+  </main>
+</div>

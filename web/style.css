@@ -1,0 +1,601 @@
+:root {
+  --bg: #0b0c0e;
+  --grid: #191c21;
+  --panel: rgba(19, 21, 25, 0.82);
+  --panel-solid: #14161a;
+  --border: #262a31;
+  --border-strong: #343943;
+  --text: #e9ebee;
+  --muted: #878d96;
+  --faint: #5d636c;
+  --accent: #8b7cff;
+  --accent-dim: rgba(139, 124, 255, 0.16);
+  --live: #3ddc97;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 32px -8px rgba(0, 0, 0, 0.65);
+  --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* ------------------------------------------------------------- canvas --- */
+
+#viewport {
+  position: fixed;
+  inset: 0;
+  cursor: default;
+  touch-action: none;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle at 1px 1px, var(--grid) 1px, transparent 0);
+  background-size: var(--dot-size, 32px) var(--dot-size, 32px);
+  background-position: var(--dot-x, 0) var(--dot-y, 0);
+}
+
+#viewport.panning {
+  cursor: grabbing;
+}
+#viewport.space-held {
+  cursor: grab;
+}
+
+#world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* -------------------------------------------------------------- frame --- */
+
+.frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(var(--x), var(--y));
+}
+
+.frame-label {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 8px;
+  transform-origin: 0 100%;
+  transform: scale(var(--inv, 1));
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* The label strip ignores the pointer so it never blocks a canvas pan, but the
+   title itself is grabbable — dragging it moves the frame. */
+.frame-name {
+  font-size: 13px;
+  font-weight: 550;
+  letter-spacing: -0.005em;
+  color: var(--muted);
+  transition: color 0.12s;
+  pointer-events: auto;
+  cursor: default;
+}
+
+.frame-meta {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--faint);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.frame-note {
+  font-size: 11px;
+  color: var(--faint);
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.frame:hover .frame-name,
+.frame.selected .frame-name {
+  color: var(--text);
+}
+.frame:hover .frame-meta,
+.frame.selected .frame-meta {
+  opacity: 1;
+}
+.frame.selected .frame-name {
+  color: var(--accent);
+}
+
+.frame-body {
+  position: relative;
+  width: var(--w);
+  height: var(--h);
+  background: #fff;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  outline: 1px solid rgba(255, 255, 255, 0.06);
+  outline-offset: 0;
+}
+
+.frame.selected .frame-body {
+  outline: calc(1px / var(--scale, 1) + 1px) solid var(--accent);
+}
+
+.frame.live .frame-body {
+  outline: calc(1px / var(--scale, 1) + 1px) solid var(--live);
+}
+
+.frame iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+/* Swallows pointer events so a click drags the frame instead of hitting the
+   design inside. Double-click removes it and the iframe becomes interactive. */
+.frame-shield {
+  position: absolute;
+  inset: 0;
+  cursor: default;
+  background: transparent;
+}
+.frame.live .frame-shield {
+  display: none;
+}
+
+.frame-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--accent);
+  opacity: 0;
+}
+.frame-flash.on {
+  animation: flash 0.5s ease-out;
+}
+@keyframes flash {
+  0% {
+    opacity: 0.22;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.live-badge {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 8px;
+  transform-origin: 100% 100%;
+  transform: scale(var(--inv, 1));
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--live);
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: rgba(61, 220, 151, 0.12);
+  display: none;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.frame.live .live-badge {
+  display: block;
+}
+
+/* ------------------------------------------------------------ handles --- */
+
+.handle {
+  position: absolute;
+  width: calc(11px / var(--scale, 1));
+  height: calc(11px / var(--scale, 1));
+  background: var(--panel-solid);
+  border: calc(1.5px / var(--scale, 1)) solid var(--accent);
+  border-radius: calc(2px / var(--scale, 1));
+  display: none;
+  z-index: 2;
+}
+.frame.selected .handle {
+  display: block;
+}
+.frame.live .handle {
+  display: none;
+}
+
+.handle.nw { top: 0; left: 0; transform: translate(-50%, -50%); cursor: nwse-resize; }
+.handle.ne { top: 0; right: 0; transform: translate(50%, -50%); cursor: nesw-resize; }
+.handle.sw { bottom: 0; left: 0; transform: translate(-50%, 50%); cursor: nesw-resize; }
+.handle.se { bottom: 0; right: 0; transform: translate(50%, 50%); cursor: nwse-resize; }
+
+.edge {
+  position: absolute;
+  display: none;
+}
+.frame.selected .edge {
+  display: block;
+}
+.frame.live .edge {
+  display: none;
+}
+.edge.n { top: 0; left: 0; right: 0; height: calc(7px / var(--scale, 1)); transform: translateY(-50%); cursor: ns-resize; }
+.edge.s { bottom: 0; left: 0; right: 0; height: calc(7px / var(--scale, 1)); transform: translateY(50%); cursor: ns-resize; }
+.edge.w { top: 0; bottom: 0; left: 0; width: calc(7px / var(--scale, 1)); transform: translateX(-50%); cursor: ew-resize; }
+.edge.e { top: 0; bottom: 0; right: 0; width: calc(7px / var(--scale, 1)); transform: translateX(50%); cursor: ew-resize; }
+
+/* --------------------------------------------------------------- chrome -- */
+
+.chrome {
+  position: fixed;
+  z-index: 10;
+  font-size: 12px;
+}
+
+#topbar {
+  top: 14px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--panel);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  user-select: none;
+}
+
+.brand {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sep {
+  width: 1px;
+  height: 14px;
+  background: var(--border-strong);
+}
+
+.stat {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 3px rgba(61, 220, 151, 0.15);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.dot.off {
+  background: #f0616d;
+  box-shadow: 0 0 0 3px rgba(240, 97, 109, 0.15);
+}
+
+#zoombar {
+  bottom: 14px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+  background: var(--panel);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  user-select: none;
+}
+
+button.tool {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.1s, color 0.1s;
+}
+button.tool:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+button.tool:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+#zoomlevel {
+  min-width: 52px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ inspector -- */
+
+#inspector {
+  top: 14px;
+  right: 14px;
+  width: 268px;
+  padding: 14px;
+  background: var(--panel);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: none;
+  user-select: none;
+}
+#inspector.show {
+  display: block;
+}
+
+#inspector h2 {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#inspector .id {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+  margin-bottom: 12px;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  margin-bottom: 12px;
+}
+.field {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+.field label {
+  display: block;
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.field span {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.presets {
+  border-top: 1px solid var(--border);
+  padding-top: 11px;
+  margin-bottom: 12px;
+}
+.presets-label {
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+button.chip {
+  appearance: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+button.chip:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
+button.chip.on {
+  background: var(--accent-dim);
+  border-color: transparent;
+  color: var(--accent);
+}
+
+.cli {
+  border-top: 1px solid var(--border);
+  padding-top: 11px;
+}
+.cli-label {
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.cli code {
+  display: block;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--muted);
+  overflow-wrap: break-word;
+  cursor: copy;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.035);
+  transition: color 0.1s, background 0.1s;
+}
+.cli code:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+.cli code.copied {
+  color: var(--live);
+}
+
+/* ----------------------------------------------------------- empty state -- */
+
+#empty {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s, visibility 0.25s;
+}
+#empty.show {
+  opacity: 1;
+  visibility: visible;
+}
+#empty .inner {
+  text-align: center;
+  max-width: 460px;
+}
+#empty h1 {
+  font-size: 15px;
+  font-weight: 550;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+#empty p {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+#empty pre {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--faint);
+  text-align: left;
+  display: inline-block;
+  margin: 0;
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.02);
+}
+#empty pre b {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* --------------------------------------------------------------- toast -- */
+
+#toast {
+  bottom: 16px;
+  left: 50%;
+  transform: translate(-50%, 8px);
+  padding: 7px 13px;
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  color: var(--muted);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s, transform 0.18s;
+}
+#toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+#toast b {
+  color: var(--text);
+  font-weight: 550;
+}
+
+/* ---------------------------------------------------------------- help -- */
+
+#help {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  place-items: center;
+  background: rgba(6, 7, 9, 0.6);
+  backdrop-filter: blur(3px);
+}
+#help.show {
+  display: grid;
+}
+#help .card {
+  width: 420px;
+  padding: 20px 22px;
+  background: var(--panel-solid);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+#help h3 {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+#help dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 9px 16px;
+  align-items: baseline;
+}
+#help dt {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+  text-align: right;
+  white-space: nowrap;
+}
+#help dd {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}

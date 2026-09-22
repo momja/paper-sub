@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>paper — canvas</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%238b7cff'/><rect x='8' y='8' width='16' height='11' rx='2' fill='%230b0c0e'/></svg>">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div id="viewport">
+  <div id="world"></div>
+</div>
+
+<div id="empty">
+  <div class="inner">
+    <h1>Nothing on the canvas yet</h1>
+    <p>Frames are added from the command line. Point an agent at the CLI and designs land here live.</p>
+<pre><b>paper add</b> hero --file hero.html --preset desktop
+<b>paper add</b> nav  --html '&lt;nav&gt;…&lt;/nav&gt;' --preset mobile
+<b>paper set</b> hero --file hero-v2.html
+<b>paper arrange</b> --cols 3</pre>
+  </div>
+</div>
+
+<div id="topbar" class="chrome">
+  <span class="dot" id="conn" title="Connected"></span>
+  <span class="brand">paper</span>
+  <span class="sep"></span>
+  <span class="stat" id="count">0 frames</span>
+  <span class="sep"></span>
+  <button class="tool" id="btn-help" title="Keyboard shortcuts (?)">?</button>
+</div>
+
+<div id="inspector" class="chrome">
+  <h2 id="ins-name">—</h2>
+  <div class="id" id="ins-id"></div>
+  <div class="grid2">
+    <div class="field"><label>W</label><span id="ins-w">—</span></div>
+    <div class="field"><label>H</label><span id="ins-h">—</span></div>
+    <div class="field"><label>X</label><span id="ins-x">—</span></div>
+    <div class="field"><label>Y</label><span id="ins-y">—</span></div>
+  </div>
+  <div class="presets">
+    <div class="presets-label">Screen size</div>
+    <div class="chips" id="ins-presets"></div>
+  </div>
+  <div class="cli">
+    <div class="cli-label">Update from the CLI</div>
+    <code id="ins-cli">—</code>
+  </div>
+</div>
+
+<div id="zoombar" class="chrome">
+  <button class="tool" id="btn-out" title="Zoom out (−)">−</button>
+  <button class="tool" id="zoomlevel" title="Reset to 100% (0)">100%</button>
+  <button class="tool" id="btn-in" title="Zoom in (+)">+</button>
+  <span class="sep"></span>
+  <button class="tool" id="btn-fit" title="Zoom to fit (F)">Fit</button>
+</div>
+
+<div id="toast" class="chrome"></div>
+
+<div id="help">
+  <div class="card">
+    <h3>Canvas controls</h3>
+    <dl>
+      <dt>scroll</dt><dd>Pan around the canvas</dd>
+      <dt>⌘ scroll</dt><dd>Zoom in and out</dd>
+      <dt>space + drag</dt><dd>Pan from anywhere</dd>
+      <dt>drag</dt><dd>Move the frame under the cursor</dd>
+      <dt>drag edge</dt><dd>Resize a selected frame</dd>
+      <dt>double-click</dt><dd>Interact with the design inside</dd>
+      <dt>esc</dt><dd>Stop interacting / deselect</dd>
+      <dt>F</dt><dd>Zoom to fit every frame</dd>
+      <dt>0</dt><dd>Reset zoom to 100%</dd>
+      <dt>1</dt><dd>Zoom to the selected frame</dd>
+      <dt>R</dt><dd>Reload the selected frame</dd>
+      <dt>⌫</dt><dd>Delete the selected frame</dd>
+    </dl>
+  </div>
+</div>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>
