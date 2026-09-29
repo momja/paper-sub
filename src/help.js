@@ -137,11 +137,14 @@ export const COMMAND_HELP = {
   to any static host (GitHub Pages, S3, a gist preview).
 
   Frame designs keep running in sandboxed iframes, exactly as on the canvas.
-  The viewer's ${dim('Copy HTML')} and ${dim('Download')} buttons produce the same file.
+  Thumbnails are baked in so a big board opens zoomed out instantly; missing
+  ones are rendered first. The viewer's ${dim('Copy HTML')} and ${dim('Download')} buttons
+  produce the same file from whatever thumbnails are cached.
 
   ${dim('OPTIONS')}
     --out, -o <file>    Output path  ${dim('(default <project>.html; - for stdout)')}
     --title <text>      Page title  ${dim('(default: the project folder name)')}
+    --no-thumbs         Don't render missing thumbnails; embed only cached ones
 
   ${dim('EXAMPLES')}
     ${cyan('paper export')}
@@ -164,5 +167,11 @@ export const COMMAND_HELP = {
     Double-click a frame       Interact with the design inside
     F                          Zoom to fit    ${dim('· 0 resets to 100%')}
     Delete                     Remove the selected frame
+    P                          Rendering stats
+
+  Zoomed out, frames are drawn from screenshots that a headless Chromium takes
+  in the background; real iframes load once you zoom in. Set PAPER_CHROME to
+  pick the browser binary, or to "off" to have the viewer draw rougher
+  thumbnails itself.
 `,
 };

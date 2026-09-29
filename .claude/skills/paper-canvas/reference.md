@@ -17,7 +17,7 @@ stderr.
 | `paper init` | Creates `.paper-canvas/` in the cwd. Rarely needed — any command bootstraps it. |
 | `paper status` | Canvas path, frame count, server URL or `not running`. |
 | `paper open [frame]` | Opens the viewer, optionally focused on a frame. `--print` emits the URL instead of launching. |
-| `paper export` | Writes the canvas to one self-contained, view-only HTML file that needs no server. `--out <file>` (default `<project>.html`; `-` for stdout), `--title <text>`. Works whether or not the viewer is running. |
+| `paper export` | Writes the canvas to one self-contained, view-only HTML file that needs no server. `--out <file>` (default `<project>.html`; `-` for stdout), `--title <text>`, `--no-thumbs` (embed only cached thumbnails instead of rendering missing ones). Works whether or not the viewer is running. |
 
 ## Frames
 
@@ -83,8 +83,10 @@ The canvas is plain files in `.paper-canvas/` in the working directory:
 
 ```
 .paper-canvas/
-  canvas.json          frame metadata (position, size, name) + saved viewport
+  canvas.json          frame metadata (position, size, name)
   frames/<id>.html     markup for one frame
+  viewport.json        the viewer's saved pan and zoom
+  thumbs/              rendered thumbnails (a cache; safe to delete)
   server.json          host/port/pid of the running viewer
 ```
 
@@ -112,6 +114,7 @@ writes.
 | `F` / `0` / `1` | Fit all · reset to 100% · zoom to selection |
 | `R` | Reload the selected frame |
 | `⌫` | Delete the selected frame |
+| `P` | Rendering stats |
 | `?` | Shortcut list |
 
 Frames are inert by default — a click drags rather than hitting links inside — so a board of live
@@ -133,6 +136,11 @@ reports isn't the one you're adding to, you're in a different directory — pass
 full-height wrapper. Drop `--raw` or set the height yourself.
 
 **Frame is blank white.** Created without content. `paper set <frame> --file …` to fill it.
+
+**Zoomed out, a frame looks stale or is missing script-drawn content.** Zoomed out, the user sees a
+screenshot taken right after the frame loaded. Anything drawn later, and animations, appear at 50%
+zoom or when they double-click in. A frame that looks stale at every zoom is a real reload problem;
+see the next entry.
 
 **Changes don't show.** The viewer reloads a frame when its file changes on disk. If a tab looks
 stale, the connection dot in the top-left goes red when disconnected; it reconnects on its own, and

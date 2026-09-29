@@ -82,6 +82,9 @@ unstyled.
 Designs run in a sandboxed iframe with an opaque origin — scripts and forms work, but `localStorage`
 throws. Don't rely on storage APIs.
 
+Zoomed out, the user sees a screenshot of each frame taken right after it loads. Put what matters in
+the initial render; content a script adds after a delay, and animations, only show once they zoom in.
+
 ```bash
 paper add pricing --file designs/pricing.html --w 1000 --h 620
 cat designs/nav.html | paper add nav --preset mobile

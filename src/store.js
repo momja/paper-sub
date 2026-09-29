@@ -4,8 +4,11 @@
 // CLI and the server never need to talk to each other directly: the CLI mutates
 // files, the server watches them and pushes the result to connected browsers.
 //
-//   <root>/canvas.json          metadata for every frame + saved viewport
+//   <root>/canvas.json          metadata for every frame
 //   <root>/frames/<id>.html     the markup for one frame
+//   <root>/viewport.json        the viewer's saved pan/zoom (kept apart so a
+//                               pan never rewrites a large canvas.json)
+//   <root>/thumbs/              rendered thumbnails, a disposable cache
 //
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,7 +17,9 @@ import crypto from 'node:crypto';
 
 export const STORE_DIRNAME = '.paper-canvas';
 const CANVAS_FILE = 'canvas.json';
+const VIEWPORT_FILE = 'viewport.json';
 const FRAMES_DIRNAME = 'frames';
+const THUMBS_DIRNAME = 'thumbs';
 
 const DEFAULT_STATE = {
   version: 1,
@@ -36,7 +41,9 @@ export class Store {
   constructor(root) {
     this.root = resolveRoot(root);
     this.canvasPath = path.join(this.root, CANVAS_FILE);
+    this.viewportPath = path.join(this.root, VIEWPORT_FILE);
     this.framesDir = path.join(this.root, FRAMES_DIRNAME);
+    this.thumbsDir = path.join(this.root, THUMBS_DIRNAME);
   }
 
   exists() {
@@ -84,8 +91,38 @@ export class Store {
     return result;
   }
 
+  /** Saved pan/zoom. Older canvases kept it inside canvas.json; still honour that. */
+  readViewport() {
+    try {
+      const v = JSON.parse(fs.readFileSync(this.viewportPath, 'utf8'));
+      return { ...DEFAULT_STATE.viewport, ...v };
+    } catch {
+      return this.read().viewport;
+    }
+  }
+
+  writeViewport(viewport) {
+    fs.mkdirSync(this.root, { recursive: true });
+    const tmp = path.join(this.root, `.viewport.${process.pid}.tmp`);
+    fs.writeFileSync(tmp, JSON.stringify(viewport) + '\n', 'utf8');
+    fs.renameSync(tmp, this.viewportPath);
+  }
+
   framePath(id) {
     return path.join(this.framesDir, `${id}.html`);
+  }
+
+  /**
+   * A cheap fingerprint of a frame's markup file (mtime and size), so viewers
+   * know when to reload without diffing HTML. 0 means no content yet.
+   */
+  contentRev(id) {
+    try {
+      const st = fs.statSync(this.framePath(id));
+      return Math.round(st.mtimeMs) ^ st.size;
+    } catch {
+      return 0;
+    }
   }
 
   readContent(id) {
@@ -177,10 +214,14 @@ export function nextFreeSlot(frames, w, h) {
   if (!frames.length) return { x: 0, y: 0 };
   const GAP = 120;
   const ROW_WIDTH = 6200;
-  let x = Math.min(...frames.map((f) => f.x));
-  let y = Math.min(...frames.map((f) => f.y));
-  const rightEdge = Math.max(...frames.map((f) => f.x + f.w));
-  const bottomEdge = Math.max(...frames.map((f) => f.y + f.h));
+  // Plain loops: spreading a very large canvas into Math.min overflows the stack.
+  let x = Infinity, y = Infinity, rightEdge = -Infinity, bottomEdge = -Infinity;
+  for (const f of frames) {
+    x = Math.min(x, f.x);
+    y = Math.min(y, f.y);
+    rightEdge = Math.max(rightEdge, f.x + f.w);
+    bottomEdge = Math.max(bottomEdge, f.y + f.h);
+  }
 
   if (rightEdge - x + GAP + w <= ROW_WIDTH) return { x: rightEdge + GAP, y };
   return { x, y: bottomEdge + GAP };

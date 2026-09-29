@@ -14,7 +14,7 @@ import {
   DEFAULT_FRAME_SIZE,
 } from './store.js';
 import { listen } from './server.js';
-import { buildExport, defaultTitle, exportFilename } from './export.js';
+import { buildExport, defaultTitle, exportFilename, renderExportThumbs, standaloneThumbnailer } from './export.js';
 import { HELP, COMMAND_HELP } from './help.js';
 
 const PRESETS = {
@@ -78,12 +78,16 @@ const COMMANDS = {
   // --------------------------------------------------------------- serve ---
   async serve({ store, flags }) {
     const port = Number(flags.port || flags.p || 4321);
-    const { url } = await listen({ root: store.root, port });
+    const { url, thumbs } = await listen({ root: store.root, port });
     const frames = store.read().frames.length;
+    const thumbLine = thumbs.available
+      ? `thumbnails via ${path.basename(thumbs.browserPath)}`
+      : 'thumbnails drawn in the browser (no Chromium found; set PAPER_CHROME)';
 
     process.stdout.write(
       `\n  ${bold('paper canvas')}  ${dim('·')}  ${cyan(url)}\n` +
-        `  ${dim(`${frames} frame${frames === 1 ? '' : 's'} · ${homeShorten(store.root)}`)}\n\n` +
+        `  ${dim(`${frames} frame${frames === 1 ? '' : 's'} · ${homeShorten(store.root)}`)}\n` +
+        `  ${dim(thumbLine)}\n\n` +
         `  ${dim('Add a design:')} ${cyan('paper add hero --file hero.html')}\n` +
         `  ${dim('Ctrl-C to stop')}\n\n`
     );
@@ -272,7 +276,7 @@ const COMMANDS = {
       `${(store.readContent(f.id).length / 1024).toFixed(1)}kb`,
     ]);
     const widths = ['ID', 'NAME', 'SIZE', 'POSITION', 'CONTENT'].map((h, i) =>
-      Math.max(h.length, ...rows.map((r) => r[i].length))
+      rows.reduce((max, r) => Math.max(max, r[i].length), h.length)
     );
     const line = (cells, fmt = (s) => s) =>
       '  ' + cells.map((c, i) => fmt(c.padEnd(widths[i]))).join('   ');
@@ -356,8 +360,20 @@ const COMMANDS = {
   // -------------------------------------------------------------- export ---
   async export({ store, flags }) {
     const title = typeof flags.title === 'string' ? flags.title : defaultTitle(store);
-    const html = buildExport(store, { title });
     const target = flags.out ?? flags.o;
+    // Bake in thumbnails so the file opens zoomed out without rendering a thing.
+    const thumbs = standaloneThumbnailer(store);
+    if (flags.thumbs !== false) {
+      const quiet = target === '-' || truthy(flags.json) || !process.stderr.isTTY;
+      const rendered = await renderExportThumbs(store, thumbs, {
+        onProgress: (done, total) => {
+          if (!quiet) process.stderr.write(`\r${dim(`· rendering thumbnails ${done}/${total}`)}`);
+        },
+      });
+      thumbs.shutdown();
+      if (rendered && !quiet) process.stderr.write('\n');
+    }
+    const html = buildExport(store, { title, thumbs });
     if (target === '-') {
       process.stdout.write(html);
       return 0;

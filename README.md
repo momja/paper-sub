@@ -30,8 +30,10 @@ The canvas lives on disk in `.paper-canvas/` in whatever directory you run from:
 
 ```
 .paper-canvas/
-  canvas.json          frame metadata (position, size, name) + saved viewport
+  canvas.json          frame metadata (position, size, name)
   frames/<id>.html     the markup for one frame
+  viewport.json        the viewer's saved pan and zoom
+  thumbs/              rendered thumbnails (a cache; safe to delete)
   server.json          host/port of the running viewer
 ```
 
@@ -97,6 +99,7 @@ wrapping entirely.
 | `F` / `0` / `1` | Fit all · reset to 100% · zoom to selection |
 | `R` | Reload the selected frame |
 | `⌫` | Delete the selected frame |
+| `P` | Rendering stats: fps, CPU per frame, textures, live iframes |
 | `?` | Shortcut list |
 
 Frames are inert by default — a click drags rather than hitting links inside — so you can rearrange a
@@ -120,6 +123,52 @@ JS, and every frame's markup, which loads into sandboxed `srcdoc` iframes. Open 
 upload it to any static host (GitHub Pages, S3, Netlify, a gist preview). It makes no network
 requests of its own; a design that links a web font or remote image still fetches that.
 
+The file carries thumbnails too, so a large board opens zoomed out without rendering anything: the
+32px one for every frame, and a 512px one on boards of up to 2,000 frames. `paper export` renders
+missing ones first (`--no-thumbs` skips that); the viewer's buttons use whatever is cached.
+
+## How it stays fast
+
+A board of 100,000 frames pans and zooms at 60 fps. The viewer builds no DOM per frame:
+
+- WebGL draws every frame as one instanced quad sampling a texture atlas, in a single draw call.
+  Panning and zooming update three numbers, so the CPU cost of a frame doesn't grow with the board.
+- Thumbnails are real screenshots. `paper serve` drives a headless Chromium over the DevTools pipe
+  (no npm dependencies), captures each frame at the resolution the viewer asks for, and caches it in
+  `.paper-canvas/thumbs/`. A frame's resolution follows its size on screen, from 32px zoomed far out
+  up to 2048px. The atlas stays under a fixed GPU memory budget by giving back textures of frames
+  you can't see. The tiny thumbnails travel in bulk as raw pixels, so the browser decodes nothing.
+- Real iframes exist only for the frames you're zoomed in on (50% and up, twelve at most) and the one
+  you double-click into. An updated frame loads into a second iframe that swaps in once painted.
+- A spatial grid keeps planning, labels and hit testing proportional to what's on screen.
+- The server keeps the board in memory and sends tabs only the frames that changed. The full state
+  always comes over plain HTTP: Chromium's EventSource parser needs 25 seconds for one 2.4 MB message
+  that `fetch` handles in 30 ms.
+
+Measured on an M1 Mac in headless Chromium 149 (Metal backend), panning and zooming continuously for
+three seconds at each of four or five zoom levels, from fully zoomed out to 85%:
+
+| Board | First paint | Frame rate | Render CPU per frame |
+| --- | --- | --- | --- |
+| 10,000 frames | 0.3 s | 60 fps, no dropped frames | under 1 ms on average, 4 ms worst |
+| 100,000 frames | 0.8 s | 60 fps, no dropped frames | about 1 ms on average, 3.5 ms worst |
+
+The 100k run was taken while the server was still rendering that board's thumbnails. Warm-up gets at
+most half of its capture tabs, so on-screen requests always find one free.
+
+Try it yourself:
+
+```bash
+node scripts/stress.js 10000 /tmp/big   # write a synthetic 10k-frame board
+cd /tmp/big && paper serve              # press P in the viewer for live stats
+```
+
+Thumbnails need a Chromium-family browser. paper looks for a Playwright headless shell, Chrome,
+Chromium, Edge, Brave, Helium and a few others in their usual places. Set `PAPER_CHROME` to a binary
+to pick one, or to `off` to disable it. Without one, the viewer draws thumbnails itself from each
+frame's markup. Those are rougher (scripts don't run, remote fonts don't load), and zooming in still
+shows the real page.
+
 ## For agents
 
 `.claude/skills/paper-canvas/` is a Claude Code skill that teaches an agent to drive this CLI —
@@ -137,6 +186,8 @@ npm link   # so the skill finds `paper` on PATH
 
 ## Notes
 
+- Zoomed out, you're looking at screenshots taken just after each frame loads, once web fonts are in.
+  Animations, and anything a script draws later, show up once you zoom to 50% or double-click in.
 - Designs render in a sandboxed iframe with an opaque origin. Scripts and forms run; the page can't
   reach back into the canvas.
 - Pan/zoom is saved, so reopening the viewer returns you where you left off.

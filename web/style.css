@@ -41,9 +41,16 @@ body {
   cursor: default;
   touch-action: none;
   background-color: var(--bg);
+}
+
+/* Without WebGL the dot grid is painted by CSS instead. */
+#viewport.no-gl {
   background-image: radial-gradient(circle at 1px 1px, var(--grid) 1px, transparent 0);
   background-size: var(--dot-size, 32px) var(--dot-size, 32px);
   background-position: var(--dot-x, 0) var(--dot-y, 0);
+}
+#viewport.no-gl #gl {
+  display: none;
 }
 
 #viewport.panning {
@@ -53,6 +60,21 @@ body {
   cursor: grab;
 }
 
+/* WebGL draws every frame; the overlay draws names and selection on top of
+   the few live iframes. Neither takes pointer events of its own — the
+   viewport hit-tests frames itself. */
+#gl,
+#overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+#overlay {
+  pointer-events: none;
+}
+
 #world {
   position: absolute;
   top: 0;
@@ -60,193 +82,37 @@ body {
   width: 0;
   height: 0;
   transform-origin: 0 0;
-  will-change: transform;
-}
-
-/* -------------------------------------------------------------- frame --- */
-
-.frame {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform: translate(var(--x), var(--y));
-}
-
-.frame-label {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding-bottom: 8px;
-  transform-origin: 0 100%;
-  transform: scale(var(--inv, 1));
-  white-space: nowrap;
-  user-select: none;
   pointer-events: none;
 }
 
-/* The label strip ignores the pointer so it never blocks a canvas pan, but the
-   title itself is grabbable — dragging it moves the frame. */
-.frame-name {
-  font-size: 13px;
-  font-weight: 550;
-  letter-spacing: -0.005em;
-  color: var(--muted);
-  transition: color 0.12s;
-  pointer-events: auto;
-  cursor: default;
-}
+/* ------------------------------------------------------------ live iframes -- */
 
-.frame-meta {
-  font-size: 11px;
-  font-family: var(--mono);
-  color: var(--faint);
-  opacity: 0;
-  transition: opacity 0.12s;
-}
-
-.frame-note {
-  font-size: 11px;
-  color: var(--faint);
-  max-width: 340px;
+.live {
+  position: absolute;
+  top: 0;
+  left: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.frame:hover .frame-name,
-.frame.selected .frame-name {
-  color: var(--text);
-}
-.frame:hover .frame-meta,
-.frame.selected .frame-meta {
-  opacity: 1;
-}
-.frame.selected .frame-name {
-  color: var(--accent);
-}
-
-.frame-body {
-  position: relative;
-  width: var(--w);
-  height: var(--h);
-  background: #fff;
   border-radius: 2px;
-  overflow: hidden;
-  box-shadow: var(--shadow);
-  outline: 1px solid rgba(255, 255, 255, 0.06);
-  outline-offset: 0;
 }
 
-.frame.selected .frame-body {
-  outline: calc(1px / var(--scale, 1) + 1px) solid var(--accent);
-}
-
-.frame.live .frame-body {
-  outline: calc(1px / var(--scale, 1) + 1px) solid var(--live);
-}
-
-.frame iframe {
+.live iframe {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   border: 0;
   background: #fff;
-}
-
-/* Swallows pointer events so a click drags the frame instead of hitting the
-   design inside. Double-click removes it and the iframe becomes interactive. */
-.frame-shield {
-  position: absolute;
-  inset: 0;
-  cursor: default;
-  background: transparent;
-}
-.frame.live .frame-shield {
-  display: none;
-}
-
-.frame-flash {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: var(--accent);
   opacity: 0;
-}
-.frame-flash.on {
-  animation: flash 0.5s ease-out;
-}
-@keyframes flash {
-  0% {
-    opacity: 0.22;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-.live-badge {
-  position: absolute;
-  bottom: 100%;
-  right: 0;
-  margin-bottom: 8px;
-  transform-origin: 100% 100%;
-  transform: scale(var(--inv, 1));
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--live);
-  padding: 3px 7px;
-  border-radius: 5px;
-  background: rgba(61, 220, 151, 0.12);
-  display: none;
-  white-space: nowrap;
   pointer-events: none;
 }
-.frame.live .live-badge {
-  display: block;
+/* Revealed over its thumbnail once painted; instant, since the two match. */
+.live iframe.ready {
+  opacity: 1;
 }
-
-/* ------------------------------------------------------------ handles --- */
-
-.handle {
-  position: absolute;
-  width: calc(11px / var(--scale, 1));
-  height: calc(11px / var(--scale, 1));
-  background: var(--panel-solid);
-  border: calc(1.5px / var(--scale, 1)) solid var(--accent);
-  border-radius: calc(2px / var(--scale, 1));
-  display: none;
-  z-index: 2;
+.live.interactive iframe {
+  pointer-events: auto;
 }
-.frame.selected .handle {
-  display: block;
-}
-.frame.live .handle {
-  display: none;
-}
-
-.handle.nw { top: 0; left: 0; transform: translate(-50%, -50%); cursor: nwse-resize; }
-.handle.ne { top: 0; right: 0; transform: translate(50%, -50%); cursor: nesw-resize; }
-.handle.sw { bottom: 0; left: 0; transform: translate(-50%, 50%); cursor: nesw-resize; }
-.handle.se { bottom: 0; right: 0; transform: translate(50%, 50%); cursor: nwse-resize; }
-
-.edge {
-  position: absolute;
-  display: none;
-}
-.frame.selected .edge {
-  display: block;
-}
-.frame.live .edge {
-  display: none;
-}
-.edge.n { top: 0; left: 0; right: 0; height: calc(7px / var(--scale, 1)); transform: translateY(-50%); cursor: ns-resize; }
-.edge.s { bottom: 0; left: 0; right: 0; height: calc(7px / var(--scale, 1)); transform: translateY(50%); cursor: ns-resize; }
-.edge.w { top: 0; bottom: 0; left: 0; width: calc(7px / var(--scale, 1)); transform: translateX(-50%); cursor: ew-resize; }
-.edge.e { top: 0; bottom: 0; right: 0; width: calc(7px / var(--scale, 1)); transform: translateX(50%); cursor: ew-resize; }
 
 /* --------------------------------------------------------------- chrome -- */
 
@@ -600,18 +466,34 @@ button.chip.on {
   color: var(--muted);
 }
 
+/* ----------------------------------------------------------------- perf -- */
+
+#perf {
+  top: 60px;
+  left: 14px;
+  margin: 0;
+  padding: 8px 11px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: none;
+  pointer-events: none;
+  white-space: pre;
+}
+#perf.show {
+  display: block;
+}
+
 /* ------------------------------------------------------------ view-only -- */
 /* A `paper export` file sets body.readonly: no editing chrome, drags pan. */
 
 body:not(.readonly) .view-only,
 .readonly .edit-only,
 .readonly #inspector,
-.readonly #empty pre,
-.readonly .handle,
-.readonly .edge {
+.readonly #empty pre {
   display: none;
-}
-.readonly .frame-shield,
-.readonly .frame-label {
-  cursor: grab;
 }

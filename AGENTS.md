@@ -41,6 +41,9 @@ do that when you need custom `<head>` content such as a font link.
 Everything must be self-contained: inline the CSS in a `<style>` block, inline SVG, use data URIs.
 There is no build step and no asset pipeline.
 
+Zoomed out, the human sees a screenshot of each frame taken right after it loads. Put what matters in
+the initial render; content a script adds after a delay, and animations, only show once they zoom in.
+
 ```bash
 paper add pricing --file designs/pricing.html --w 1000 --h 620
 cat designs/nav.html | paper add nav --preset mobile

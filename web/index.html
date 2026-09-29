@@ -10,7 +10,9 @@
 <body>
 
 <div id="viewport">
+  <canvas id="gl"></canvas>
   <div id="world"></div>
+  <canvas id="overlay"></canvas>
 </div>
 
 <div id="empty">
@@ -66,6 +68,7 @@
 </div>
 
 <div id="toast" class="chrome"></div>
+<pre id="perf" class="chrome"></pre>
 
 <div id="help">
   <div class="card">
@@ -84,6 +87,7 @@
       <dt>1</dt><dd>Zoom to the selected frame</dd>
       <dt>R</dt><dd>Reload the selected frame</dd>
       <dt class="edit-only">⌫</dt><dd class="edit-only">Delete the selected frame</dd>
+      <dt>P</dt><dd>Show rendering stats</dd>
     </dl>
   </div>
 </div>
