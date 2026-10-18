@@ -78,7 +78,8 @@ const COMMANDS = {
   // --------------------------------------------------------------- serve ---
   async serve({ store, flags }) {
     const port = Number(flags.port || flags.p || 4321);
-    const { url, thumbs } = await listen({ root: store.root, port });
+    const host = flags.host || process.env.PAPER_HOST || '127.0.0.1';
+    const { url, thumbs } = await listen({ root: store.root, port, host });
     const frames = store.read().frames.length;
     const thumbLine = thumbs.available
       ? `thumbnails via ${path.basename(thumbs.browserPath)}`

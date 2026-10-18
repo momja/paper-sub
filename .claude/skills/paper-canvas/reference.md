@@ -13,7 +13,7 @@ stderr.
 
 | Command | Notes |
 | --- | --- |
-| `paper serve` | Starts the viewer. **Long-running — always background it.** `--port <n>` (walks forward if taken), `--no-open` to skip launching a browser. |
+| `paper serve` | Starts the viewer. **Long-running — always background it.** `--port <n>` (walks forward if taken), `--host <ip>` (defaults to `PAPER_HOST` or `127.0.0.1`), `--no-open` to skip launching a browser. |
 | `paper init` | Creates `.paper-canvas/` in the cwd. Rarely needed — any command bootstraps it. |
 | `paper status` | Canvas path, frame count, server URL or `not running`. |
 | `paper open [frame]` | Opens the viewer, optionally focused on a frame. `--print` emits the URL instead of launching. |

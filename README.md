@@ -24,6 +24,17 @@ npm link          # puts `paper` on your PATH
 # or skip it and use `node bin/paper.js …` everywhere
 ```
 
+### Remote servers
+
+The viewer binds to `127.0.0.1` by default. Set `PAPER_HOST` to the server's Tailscale IP
+or pass `paper serve --host <ip>` to reach it directly over your tailnet. `--host` overrides
+`PAPER_HOST`. Bind to the Tailscale IP rather than `0.0.0.0` to avoid listening on public interfaces.
+The viewer has no authentication; only use it on a trusted network.
+
+For a server-wide default, configure the server's `paper` launcher to export `PAPER_HOST` before
+running the CLI. Agents can then use their normal `paper serve --no-open` command without knowing
+about the network configuration. Use `PAPER_CHROME=off` if the server cannot run Chromium's sandbox.
+
 ## How it works
 
 The canvas lives on disk in `.paper-canvas/` in whatever directory you run from:
@@ -48,7 +59,7 @@ browser tabs over Server-Sent Events. That means:
 
 | Command | What it does |
 | --- | --- |
-| `paper serve` | Start the viewer (`--port`, `--no-open`) |
+| `paper serve` | Start the viewer (`--port`, `--host`, `--no-open`) |
 | `paper add <name>` | Add a frame from `--file`, `--html`, or stdin |
 | `paper set <frame>` | Replace a frame's contents in place |
 | `paper ls` | List frames (`--json` for machine output) |
