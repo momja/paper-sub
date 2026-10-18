@@ -493,14 +493,25 @@ function fitTo(list, { padding = 60, maxScale = 1 } = {}) {
 
   // Fit into the space the floating chrome leaves free, not the raw window,
   // so nothing lands underneath the toolbars or the inspector.
+  const compact = matchMedia('(max-width: 700px), (max-height: 500px)').matches;
+  const gap = compact ? 16 : padding;
+  const topbar = document.getElementById('topbar').getBoundingClientRect();
+  const zoombar = document.getElementById('zoombar').getBoundingClientRect();
+  const inspector = document.getElementById('inspector');
+  const panel = inspector.getBoundingClientRect();
   const inset = {
-    top: padding + 48,
-    bottom: padding + 48,
-    left: padding,
-    right: padding + (document.getElementById('inspector').classList.contains('show') ? 290 : 0),
+    top: topbar.bottom + gap,
+    bottom: cssH - zoombar.top + gap,
+    left: gap,
+    right: gap,
   };
-  const availW = Math.max(120, cssW - inset.left - inset.right);
-  const availH = Math.max(120, cssH - inset.top - inset.bottom);
+  if (inspector.classList.contains('show') && !READONLY) {
+    const bottomDocked = compact && !matchMedia('(min-width: 501px) and (max-height: 500px)').matches;
+    if (bottomDocked) inset.bottom = cssH - panel.top + gap;
+    else inset.right = cssW - panel.left + gap;
+  }
+  const availW = Math.max(1, cssW - inset.left - inset.right);
+  const availH = Math.max(1, cssH - inset.top - inset.bottom);
 
   const scale = clamp(Math.min(availW / w, availH / h), MIN_SCALE, maxScale);
   view.scale = scale;
@@ -522,6 +533,12 @@ function select(id) {
   document.getElementById('inspector').classList.toggle('show', Boolean(f) && !READONLY);
   invalidate();
 }
+
+document.getElementById('btn-close-inspector').onclick = () => {
+  setLive(null);
+  select(null);
+};
+document.getElementById('btn-close-help').onclick = () => helpEl.classList.remove('show');
 
 /** Bring a frame to the top of the stack, like clicking a window. */
 function raise(f) {

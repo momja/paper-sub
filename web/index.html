@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>paper — canvas</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%238b7cff'/><rect x='8' y='8' width='16' height='11' rx='2' fill='%230b0c0e'/></svg>">
 <link rel="stylesheet" href="/style.css">
@@ -34,13 +34,16 @@
   <span class="sep"></span>
   <span class="stat view-only">view only</span>
   <span class="sep view-only"></span>
+  <div class="topbar-actions">
   <button class="tool edit-only" id="btn-copy-html" title="Copy the canvas as one view-only HTML file">Copy HTML</button>
   <button class="tool edit-only" id="btn-download" title="Download the canvas as one view-only HTML file">Download</button>
   <span class="sep edit-only"></span>
   <button class="tool" id="btn-help" title="Keyboard shortcuts (?)">?</button>
+  </div>
 </div>
 
 <div id="inspector" class="chrome">
+  <button class="tool panel-close" id="btn-close-inspector" aria-label="Close inspector">×</button>
   <h2 id="ins-name">—</h2>
   <div class="id" id="ins-id"></div>
   <div class="grid2">
@@ -72,6 +75,7 @@
 
 <div id="help">
   <div class="card">
+    <button class="tool panel-close" id="btn-close-help" aria-label="Close help">×</button>
     <h3>Canvas controls</h3>
     <dl>
       <dt>scroll</dt><dd>Pan around the canvas</dd>
